@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>エンドレス1文字タイピング（位置固定版）</title>
+<title>エンドレス1文字タイピング</title>
 <style>
   body {
     display: flex;
@@ -14,38 +14,40 @@
     margin: 0;
     background-color: #282c34;
     color: #ffffff;
-    font-family: 'Arial', sans-serif;
-    overflow: hidden; /* スクロール禁止 */
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace; /* 等幅フォントでサイズを安定化 */
+    overflow: hidden;
   }
+
   #score-board {
     font-size: 24px;
     color: #61dafb;
     margin-bottom: 20px;
   }
-  /* ターゲット表示エリアの修正 */
-  #target {
-    font-size: 150px;
-    font-weight: bold;
-    transition: color 0.1s;
-    /* 
-       高さを固定し、flexを使って中身を上下左右中央に。
-       これで記号が上下に跳ねるのを防ぎます。
-    */
-    display: flex;
-    justify-content: center;
-    align-items: center;
+
+  /* センター配置のコア設定 */
+  #target-container {
     width: 300px;
-    height: 200px;
-    line-height: 1; 
-    text-align: center;
+    height: 300px;
+    display: grid; /* Gridを使用 */
+    place-items: center; /* 上下左右を完全に中央揃え */
+    background: rgba(255, 255, 255, 0.05); /* センターが分かりやすいよう薄く背景 */
+    border-radius: 20px;
   }
-  .correct {
-    color: #4caf50 !important;
+
+  #target {
+    font-size: 180px; /* 少し大きく */
+    font-weight: bold;
+    line-height: 0; /* 行間をゼロにして文字本来の浮き上がりを抑制 */
+    transition: color 0.1s;
+    user-select: none;
   }
+
+  .correct { color: #4caf50 !important; }
   .wrong {
     color: #f44336 !important;
     animation: shake 0.2s ease-in-out;
   }
+
   @keyframes shake {
     0% { transform: translateX(0); }
     25% { transform: translateX(-15px); }
@@ -53,31 +55,37 @@
     75% { transform: translateX(-15px); }
     100% { transform: translateX(0); }
   }
+
   #note {
     margin-top: 30px;
     color: #888;
     font-size: 14px;
     text-align: center;
-    line-height: 1.6;
   }
 </style>
 </head>
 <body>
 
   <div id="score-board">スコア: <span id="score">0</span></div>
-  <div id="target">-</div>
+  
+  <!-- コンテナを追加して位置を絶対化 -->
+  <div id="target-container">
+    <div id="target">-</div>
+  </div>
+
   <div id="note">
-    ※必ず「半角英数モード」でプレイしてください<br>
-    （ミスした文字は5個後に再出現します）
+    ※半角英数モードで入力<br>
+    （ミスした文字は5個後に再出現）
   </div>
 
 <script>
+  // 記号もそのままの文字を使って大丈夫なように調整
   const targets = [
     ...Array.from("ABCDEFGHIJKLMNOPQRSTUVWXYZ").map(char => ({ display: char, key: char })),
-    { display: "，", key: "," }, // 全角風の見た目にして視認性を向上
-    { display: "．", key: "." },
-    { display: "/", key: "/" }, // "/" は見にくいので "?" に変更（キー判定は / のまま）
-    { display: "ー", key: "-" }
+    { display: ",", key: "," },
+    { display: ".", key: "." },
+    { display: "/", key: "/" },
+    { display: "-", key: "-" }
   ];
 
   let currentTarget = null;
@@ -108,11 +116,10 @@
   document.addEventListener("keydown", (event) => {
     if (event.isComposing) return;
 
-    // 入力キーを判定（記号も含むのでtoUpperCaseはアルファベットのみに効く）
     const inputKey = event.key.toUpperCase();
     if (["SHIFT", "CONTROL", "ALT", "META", "ENTER", "BACKSPACE", "TAB", "ESCAPE"].includes(inputKey)) return;
 
-    // 判定（currentTarget.key と比較）
+    // アルファベットと記号の両方に対応する判定
     if (inputKey === currentTarget.key.toUpperCase()) {
       score++;
       scoreElement.textContent = score;
