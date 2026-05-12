@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>エンドレス1文字タイピング</title>
+<style>
+  body {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+    background-color: #282c34;
+    color: #ffffff;
+    font-family: 'Arial', sans-serif;
+  }
+  #score-board {
+    font-size: 24px;
+    color: #61dafb;
+    margin-bottom: 20px;
+  }
+  #target {
+    font-size: 150px;
+    font-weight: bold;
+    transition: color 0.1s;
+  }
+  .correct {
+    color: #4caf50 !important;
+  }
+  .wrong {
+    color: #f44336 !important;
+    animation: shake 0.2s ease-in-out;
+  }
+  @keyframes shake {
+    0% { transform: translateX(0); }
+    25% { transform: translateX(-15px); }
+    50% { transform: translateX(15px); }
+    75% { transform: translateX(-15px); }
+    100% { transform: translateX(0); }
+  }
+  #note {
+    margin-top: 30px;
+    color: #888;
+    font-size: 14px;
+    text-align: center;
+    line-height: 1.6;
+  }
+</style>
+</head>
+<body>
+
+  <div id="score-board">スコア: <span id="score">0</span></div>
+  <div id="target">-</div>
+  <div id="note">
+    ※必ず「半角英数モード」でプレイしてください<br>
+    （ミスした文字は5個後に再出現します）
+  </div>
+
+<script>
+  const targets = [
+    ...Array.from("ABCDEFGHIJKLMNOPQRSTUVWXYZ").map(char => ({ display: char, key: char })),
+    { display: "、", key: "," },
+    { display: "。", key: "." },
+    { display: "・", key: "/" },
+    { display: "ー", key: "-" }
+  ];
+
+  let currentTarget = null;
+  let score = 0;
+  // 出現予定の文字を管理するキュー
+  let futureQueue = [];
+  const REAPPEAR_INDEX = 4; // 0から数えて4番目＝5個目
+
+  const targetElement = document.getElementById("target");
+  const scoreElement = document.getElementById("score");
+
+  // ランダムな文字を1つ取得
+  function getRandomTarget() {
+    return targets[Math.floor(Math.random() * targets.length)];
+  }
+
+  // 初期キューの作成（とりあえず10個分溜めておく）
+  function initQueue() {
+    for (let i = 0; i < 10; i++) {
+      futureQueue.push(getRandomTarget());
+    }
+  }
+
+  function setNextLetter() {
+    // キューの先頭から取り出す
+    currentTarget = futureQueue.shift();
+    
+    // キューが減ったら新しいランダム文字を末尾に補充
+    futureQueue.push(getRandomTarget());
+
+    targetElement.textContent = currentTarget.display;
+    targetElement.className = "";
+  }
+
+  document.addEventListener("keydown", (event) => {
+    if (event.isComposing) return;
+
+    const inputKey = event.key.toUpperCase();
+    if (["SHIFT", "CONTROL", "ALT", "META", "ENTER", "BACKSPACE", "TAB", "ESCAPE"].includes(inputKey)) return;
+
+    if (inputKey === currentTarget.key) {
+      // 正解
+      score++;
+      scoreElement.textContent = score;
+      targetElement.className = "correct";
+      setTimeout(setNextLetter, 50);
+    } else {
+      // ミス
+      targetElement.className = "wrong";
+      
+      // 今間違えた文字を、キューの5個先（インデックス4）に挿入
+      // splice(位置, 削除数, 追加するもの)
+      futureQueue.splice(REAPPEAR_INDEX, 0, currentTarget);
+
+      setTimeout(() => {
+        targetElement.className = "";
+      }, 200);
+    }
+  });
+
+  // 起動
+  initQueue();
+  setNextLetter();
+</script>
+</body>
+</html>
