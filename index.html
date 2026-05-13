@@ -1,23 +1,23 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-になります。これで理不尽なループは発生しなくなります。
-*   **アニメーションの改善 (おまけ)**: 以前のコードだと8">
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>エンドレス1文字タイピング</title>
 <style>
+  /* 元のCSSから変更なし */
   body {
     display: flex;
     flex-direction: column;
     justify-content: center;
-    align-、連続してミスをしたときに `className` がすでに `wrong` になっているため、2回目以降のミスで画面が震えませんでした。`void targetElement.items: center;
+    align-items: center;
     height: 100vh;
     margin: 0;
     background-color: #282c34;
-offsetWidth;` を挟むことでブラウザに再描画を促し、何度連続で間違えても毎回ちゃんとエラーのアニメーションが再生されるように    color: #ffffff;
+    color: #ffffff;
     font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
     overflow: hidden;
-調整しています。  }
+  }
 
   #score-board {
     font-size: 24px;
@@ -37,13 +37,12 @@ offsetWidth;` を挟むことでブラウザに再描画を促し、何度連続
   #target {
     font-size: 180px;
     font-weight: bold;
-    line-height: 0;
-    transition: color 0.1s;
+    line-height: 1;
     user-select: none;
+    transition: color 0.1s;
   }
 
-  .correct { color: #4caf50 !important; }
-  .wrong {
+  .wrong #target {
     color: #f44336 !important;
     animation: shake 0.2s ease-in-out;
   }
@@ -78,29 +77,24 @@ offsetWidth;` を挟むことでブラウザに再描画を促し、何度連続
   </div>
 
 <script>
-  const targets = [
-    ...Array.from("ABCDEFGHIJKLMNOPQRSTUVWXYZ").map(char => ({ display: char, key: char })),
-    { display: ",", key: "," },
-    { display: ".", key: "." },
-    { display: "/", key: "/" },
-    { display: "-", key: "-" }
-  ];
+  // 改善点2: 出題リストをまとめて生成するように変更
+  const TARGET_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ,./-";
+  const targets = Array.from(TARGET_CHARS).map(char => ({ display: char, key: char }));
 
   let currentTarget = null;
   let score = 0;
   let futureQueue = [];
   const REAPPEAR_INDEX = 4;
 
-  // 追加: ループ防止用の変数
   let hasMissedCurrent = false; 
   let lastGeneratedKey = "";
 
+  const targetContainer = document.getElementById("target-container");
   const targetElement = document.getElementById("target");
   const scoreElement = document.getElementById("score");
 
   function getRandomTarget() {
     let newTarget;
-    // 追加: 直前に生成した文字と被らないように再抽選する
     do {
       newTarget = targets[Math.floor(Math.random() * targets.length)];
     } while (newTarget.key === lastGeneratedKey);
@@ -119,35 +113,35 @@ offsetWidth;` を挟むことでブラウザに再描画を促し、何度連続
     currentTarget = futureQueue.shift();
     futureQueue.push(getRandomTarget());
     targetElement.textContent = currentTarget.display;
-    targetElement.className = "";
     
-    // 追加: 新しい文字に切り替わったらミス判定をリセット
+    // 状態リセット
+    targetContainer.classList.remove("wrong");
     hasMissedCurrent = false; 
   }
 
   document.addEventListener("keydown", (event) => {
     if (event.isComposing) return;
 
-    const inputKey = event.key.toUpperCase();
-    if (["SHIFT", "CONTROL", "ALT", "META", "ENTER", "BACKSPACE", "TAB", "ESCAPE"].includes(inputKey)) return;
+    // 改善点1: event.keyが1文字でない場合（修飾キー、特殊キーなど）は無視する
+    if (event.key.length !== 1) return;
 
-    if (inputKey === currentTarget.key.toUpperCase()) {
+    const inputKey = event.key.toUpperCase();
+
+    if (inputKey === currentTarget.key) {
+      // 正解
       score++;
       scoreElement.textContent = score;
-      targetElement.className = "correct";
-      setTimeout(setNextLetter, 50);
+      setNextLetter();
     } else {
-      targetElement.className = "wrong";
+      // 不正解
+      targetContainer.classList.remove("wrong");
+      void targetContainer.offsetWidth; 
+      targetContainer.classList.add("wrong");
       
-      // 追加: まだこの文字でミス処理をしていない場合のみキューに追加する
       if (!hasMissedCurrent) {
         futureQueue.splice(REAPPEAR_INDEX, 0, currentTarget);
-        hasMissedCurrent = true; // フラグを立てて連打による増殖を防ぐ
+        hasMissedCurrent = true;
       }
-      
-      setTimeout(() => {
-        targetElement.className = "";
-      }, 200);
     }
   });
 
