@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
+<meta charset="UTF-になります。これで理不尽なループは発生しなくなります。
+*   **アニメーションの改善 (おまけ)**: 以前のコードだと8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>エンドレス1文字タイピング</title>
 <style>
@@ -9,14 +10,14 @@
     display: flex;
     flex-direction: column;
     justify-content: center;
-    align-items: center;
+    align-、連続してミスをしたときに `className` がすでに `wrong` になっているため、2回目以降のミスで画面が震えませんでした。`void targetElement.items: center;
     height: 100vh;
     margin: 0;
     background-color: #282c34;
-    color: #ffffff;
-    font-family: 'Consolas', 'Monaco', 'Courier New', monospace; /* 等幅フォントでサイズを安定化 */
+offsetWidth;` を挟むことでブラウザに再描画を促し、何度連続で間違えても毎回ちゃんとエラーのアニメーションが再生されるように    color: #ffffff;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
     overflow: hidden;
-  }
+調整しています。  }
 
   #score-board {
     font-size: 24px;
@@ -24,20 +25,19 @@
     margin-bottom: 20px;
   }
 
-  /* センター配置のコア設定 */
   #target-container {
     width: 300px;
     height: 300px;
-    display: grid; /* Gridを使用 */
-    place-items: center; /* 上下左右を完全に中央揃え */
-    background: rgba(255, 255, 255, 0.05); /* センターが分かりやすいよう薄く背景 */
+    display: grid;
+    place-items: center;
+    background: rgba(255, 255, 255, 0.05);
     border-radius: 20px;
   }
 
   #target {
-    font-size: 180px; /* 少し大きく */
+    font-size: 180px;
     font-weight: bold;
-    line-height: 0; /* 行間をゼロにして文字本来の浮き上がりを抑制 */
+    line-height: 0;
     transition: color 0.1s;
     user-select: none;
   }
@@ -68,7 +68,6 @@
 
   <div id="score-board">スコア: <span id="score">0</span></div>
   
-  <!-- コンテナを追加して位置を絶対化 -->
   <div id="target-container">
     <div id="target">-</div>
   </div>
@@ -79,7 +78,6 @@
   </div>
 
 <script>
-  // 記号もそのままの文字を使って大丈夫なように調整
   const targets = [
     ...Array.from("ABCDEFGHIJKLMNOPQRSTUVWXYZ").map(char => ({ display: char, key: char })),
     { display: ",", key: "," },
@@ -93,11 +91,22 @@
   let futureQueue = [];
   const REAPPEAR_INDEX = 4;
 
+  // 追加: ループ防止用の変数
+  let hasMissedCurrent = false; 
+  let lastGeneratedKey = "";
+
   const targetElement = document.getElementById("target");
   const scoreElement = document.getElementById("score");
 
   function getRandomTarget() {
-    return targets[Math.floor(Math.random() * targets.length)];
+    let newTarget;
+    // 追加: 直前に生成した文字と被らないように再抽選する
+    do {
+      newTarget = targets[Math.floor(Math.random() * targets.length)];
+    } while (newTarget.key === lastGeneratedKey);
+    
+    lastGeneratedKey = newTarget.key;
+    return newTarget;
   }
 
   function initQueue() {
@@ -111,6 +120,9 @@
     futureQueue.push(getRandomTarget());
     targetElement.textContent = currentTarget.display;
     targetElement.className = "";
+    
+    // 追加: 新しい文字に切り替わったらミス判定をリセット
+    hasMissedCurrent = false; 
   }
 
   document.addEventListener("keydown", (event) => {
@@ -119,7 +131,6 @@
     const inputKey = event.key.toUpperCase();
     if (["SHIFT", "CONTROL", "ALT", "META", "ENTER", "BACKSPACE", "TAB", "ESCAPE"].includes(inputKey)) return;
 
-    // アルファベットと記号の両方に対応する判定
     if (inputKey === currentTarget.key.toUpperCase()) {
       score++;
       scoreElement.textContent = score;
@@ -127,7 +138,13 @@
       setTimeout(setNextLetter, 50);
     } else {
       targetElement.className = "wrong";
-      futureQueue.splice(REAPPEAR_INDEX, 0, currentTarget);
+      
+      // 追加: まだこの文字でミス処理をしていない場合のみキューに追加する
+      if (!hasMissedCurrent) {
+        futureQueue.splice(REAPPEAR_INDEX, 0, currentTarget);
+        hasMissedCurrent = true; // フラグを立てて連打による増殖を防ぐ
+      }
+      
       setTimeout(() => {
         targetElement.className = "";
       }, 200);
